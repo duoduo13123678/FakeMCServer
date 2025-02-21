@@ -1,0 +1,47 @@
+{
+    "server": {
+        "ip": "0.0.0.0",
+        "port": 32000,
+        "porxy": {
+            "enable": false,
+            "target_ip": "localhost",
+            "target_port": 25565
+        }
+    },
+    "rcon_command": {
+        "enable": false,
+        "server_ip": "localhost",
+        "rcon_port": 25575,
+        "rcon_password": ""
+    },
+    "info": {
+        "motd": "FakeRoom Default MOTD.",
+        "server_list_motd": "FakeServer Default MOTD.",
+        "max_players": 2025,
+        "online_players": 666,
+        "icon": "",
+        "preventsChatReports": true,
+        "sample_players": [{
+            "name": "Player1",
+            "id": "00000000-0000-0000-0000-000000000000"
+        }]
+    },
+    "message": {
+        "default": {"text":"FakeServer Default Message."},
+        "player_message": [{
+            "name": "Player2",
+            "message": {"text":"A Default Message for Player2"}
+        }],
+        "blacklist": ["I_am_zjg"]
+    },
+    "debug": {
+        "enable": false,
+        "enable_room": true,
+        "enable_room_display": false,
+        "enable_server": true,
+        "server_info": {
+            "name": "FakeServer",
+            "protocol": 767
+        }
+    }
+}
