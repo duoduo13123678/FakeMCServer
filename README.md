@@ -21,10 +21,10 @@
 有概率出现“连接超时“，这可能是其他软件导致的，例如**Radmin Lan**  
 
 ### 参数
-cloud-config=云端配置URL（必须在前面加上http(s)://）
-intive-mode=是否在启动后进入交互模式（True/False）
-config-file=配置文件名
-示例：python start.py config-file=config2.json（读取config2.json的配置）
+cloud-config=云端配置URL（必须在前面加上http(s)://）  
+intive-mode=是否在启动后进入交互模式（True/False）  
+config-file=配置文件名  
+示例：python start.py config-file=config2.json（读取config2.json的配置）  
 
 ### 配置文件介绍
 *标注“\*”或未写注释（//）的不可更改，也不要在这里复制配置*  
