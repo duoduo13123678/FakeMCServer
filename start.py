@@ -9,6 +9,33 @@ import time
 import threading
 from rcon.source import Client
 import varint
+import requests
+import sys
+import ctypes
+
+ctypes.windll.kernel32.SetConsoleTitleW("FakeMCServer")
+try:
+    arg = sys.argv[1].split("=")
+    if arg[0] == "cloud-config":
+        mode = 1
+        url = arg[1]
+        intive = False
+        filename = "server-config.json"
+    elif arg[0] == "intive-mode":
+        mode = 2
+        url = "0.0.0.0"
+        intive = eval(arg[1])
+        filename = "server-config.json"
+    elif arg[0] == "config-file":
+        mode = 3
+        intive = False
+        url = "0.0.0.0"
+        filename = arg[1]
+except:
+    mode = 0
+    filename = "server-config.json"
+    intive = False
+    url = "0.0.0.0"
 
 #设置默认配置备用
 try:
@@ -20,9 +47,19 @@ except Exception as e:
 
 #获得配置文件里的设置
 def get_config():
+    global filename
+    global intive
+    global url
     try:
-        with open("server-config.json",'r',encoding='utf-8') as f:
-            config = json.load(f)
+        if intive == True:
+                raise Exception("在参数里强制开启了交互模式")
+        with open(filename,'r',encoding='utf-8') as f:
+            if mode == 1:
+                config = requests.get(url).json()
+            else:
+                config = json.load(f)
+            if config["use_the_config"] == False:
+                raise Exception("配置文件被标记为无效")
             ip = config["server"]["ip"]
             port = config["server"]["port"]
             porxy_ena = config["server"]["porxy"]["enable"]
@@ -68,7 +105,7 @@ def get_config():
                         [server_list_motd, max_players, online_players, icon, prevents_chat_reports, sample_players],
                         debug, [enable_room, enable_room_display, enable_server, server_name, protocol]]
     except Exception as e:
-        choose = input(f'Error (Main Thread): 我们在读取配置文件（server-config.json）时遇到了一个问题：{e}。\n是否用默认配置覆盖？（Y/N) ')
+        choose = input(f'Error (Main Thread): 我们在读取配置文件时遇到了一个问题：{e}。\n是否用默认配置覆盖？（可以通过回车来手动输入配置）（Y/N) ')
         if choose == "Y" or choose == "y":
             print("Info (Main Thread): 即将使用默认配置覆盖")
             time.sleep(1.5)
@@ -78,10 +115,29 @@ def get_config():
             print("Info (Main Thread): 覆盖完成，将在三秒后退出")
             time.sleep(3)
             exit()
-        else:
+        elif choose == "N" or choose == "n":
             print("Error (Main Thread): 由于配置文件无法读取，即将退出")
             time.sleep(3)
             exit()
+        else:
+            print("Info (Main Thread): 进入手动输入配置模式，仅可使用基础配置（像正常配置输入即可）")
+            ip = input("监听IP地址：")
+            port = int(input("监听端口号："))
+            motd = input("局域网联机的MOTD：")
+            message = {"text":input("消息：")}
+            server_list_motd = input("服务器列表的MOTD：")
+            max_players = int(input("最大玩家："))
+            online_players = int(input("在线玩家："))
+            icon = input("图标：")
+            sample_players = []
+            return [ip, port,
+                    [False, None, None],
+                    [False, None, None, None],
+                    motd,
+                    message, [],
+                    [],
+                    [server_list_motd, max_players, online_players, icon, True, sample_players],
+                    False]
 
 def handle_client(conn):
     try:
