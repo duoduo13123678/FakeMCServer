@@ -16,8 +16,15 @@
 2.可能一堆bug
 备注：可以在协议版本里写上"auto"来让服务器自动识别客户端版本，在服务端名称里写上default使用默认名称（带英文双引号）
 
+参数：
+cloud-config=云端配置URL（必须在前面加上http(s)://）
+intive-mode=是否在启动后进入交互模式（True/False）
+config-file=配置文件名
+示例：python start.py config-file=config2.json（读取config2.json的配置）
+
 配置文件介绍：（标注“*”或未写注释（//）的不可更改，也不要在这里复制配置）
 {
+    "use_the_config": true, //是否启用该配置文件，输入false会将配置标记为无效
     "server": { //关于服务器*
         "ip": "0.0.0.0", //监听IP地址
         "port": 32000, //监听端口号
