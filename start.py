@@ -13,41 +13,41 @@ import requests
 import sys
 import ctypes
 
-ctypes.windll.kernel32.SetConsoleTitleW("FakeMCServer")
-try:
-    arg = sys.argv[1].split("=")
-    if arg[0] == "cloud-config":
-        mode = 1
-        url = arg[1]
-        intive = False
+if __name__ == "__main__":
+    ctypes.windll.kernel32.SetConsoleTitleW("FakeMCServer")
+    try:
+        arg = sys.argv[1].split("=")
+        if arg[0] == "cloud-config":
+            mode = 1
+            url = arg[1]
+            intive = False
+            filename = "server-config.json"
+        elif arg[0] == "intive-mode":
+            mode = 2
+            url = "0.0.0.0"
+            intive = eval(arg[1])
+            filename = "server-config.json"
+        else:
+            mode = 3
+            intive = False
+            url = "0.0.0.0"
+            filename = arg[0]
+    except:
+        mode = 0
         filename = "server-config.json"
-    elif arg[0] == "intive-mode":
-        mode = 2
-        url = "0.0.0.0"
-        intive = eval(arg[1])
-        filename = "server-config.json"
-    elif arg[0] == "config-file":
-        mode = 3
         intive = False
         url = "0.0.0.0"
-        filename = arg[1]
-except:
-    mode = 0
-    filename = "server-config.json"
-    intive = False
-    url = "0.0.0.0"
 
-#设置默认配置备用
-try:
-    with open("server-config.json.default",'r') as f:
-        default_config = json.load(f)
-except Exception as e:
-    print(f'Error (Main Thread): 你似乎删除或者破坏了默认配置（server-config.json.default），错误原因：{e}')
-    print("WARN (Main Thread): 不会影响程序继续运行，但会导致无法恢复默认配置")
+    #设置默认配置备用
+    try:
+        with open("server-config.json.default",'r') as f:
+            default_config = json.load(f)
+    except Exception as e:
+        print(f'Error (Main Thread): 你似乎删除或者破坏了默认配置（server-config.json.default），错误原因：{e}')
+        print("WARN (Main Thread): 不会影响程序继续运行，但会导致无法恢复默认配置")
 
 #获得配置文件里的设置
-def get_config():
-    global filename
+def get_config(filename):
     global intive
     global url
     try:
@@ -191,41 +191,10 @@ def handle_client(conn):
             if ping_data:
                 # 直接返回相同的 payload
                 conn.send(ping_data)
-            time.sleep(0.3)
+            time.sleep(0.8)
             conn.close()
         elif next_state == 2:
-            if porxy_ena:
-                print("Server Info (Porxy Thread): 准备开始代理")
-                # 构建新握手包
-                new_handshake = varint.write(0x00)
-                new_handshake += varint.write(client_protocol)
-                new_handshake += varint.write_string(target_ip)
-                new_handshake += target_port.to_bytes(2, 'big')
-                new_handshake += varint.write(2)
-                handshake_packet = varint.write(len(new_handshake)) + new_handshake
-                # 连接目标服务器
-                target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                target_socket.connect((target_ip, target_port))
-                target_socket.send(handshake_packet)
-                # 数据转发
-                def forward(src, dest):
-                    try:
-                        while True:
-                            data = src.recv(4096)
-                            if not data:
-                                break
-                            dest.send(data)
-                    except:
-                        pass
-                    finally:
-                        src.close()
-                        dest.close()
-                        print("Server Info (Porxy Thread): 已结束代理")
-                threading.Thread(target=forward, args=(conn, target_socket)).start()
-                print("Server Info (Porxy Thread): 已开始代理，客户端到服务器")
-                threading.Thread(target=forward, args=(target_socket, conn)).start()
-                print("Server Info (Porxy Thread): 已开始代理，服务器到客户端")
-            else:
+            def send_message():
                 # 处理登录请求，读取Login Start包
                 packet_length = varint.read(conn)
                 packet_id = varint.read(conn)
@@ -249,8 +218,44 @@ def handle_client(conn):
                 packet_length = varint.write(len(packet_content))
                 full_packet = packet_length + packet_content
                 conn.send(full_packet)
-                time.sleep(0.3)
+                time.sleep(0.8)
                 conn.close()
+            if porxy_ena:
+                print("Server Info (Porxy Thread): 准备开始代理")
+                # 构建新握手包
+                new_handshake = varint.write(0x00)
+                new_handshake += varint.write(client_protocol)
+                new_handshake += varint.write_string(target_ip)
+                new_handshake += target_port.to_bytes(2, 'big')
+                new_handshake += varint.write(2)
+                handshake_packet = varint.write(len(new_handshake)) + new_handshake
+                # 连接目标服务器
+                try:
+                    target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    target_socket.connect((target_ip, target_port))
+                    target_socket.send(handshake_packet)
+                except:
+                    send_message()
+                # 数据转发
+                def forward(src, dest):
+                    try:
+                        while True:
+                            data = src.recv(4096)
+                            if not data:
+                                break
+                            dest.send(data)
+                    except:
+                        pass
+                    finally:
+                        src.close()
+                        dest.close()
+                        print("Server Info (Porxy Thread): 已结束代理")
+                threading.Thread(target=forward, args=(conn, target_socket)).start()
+                print("Server Info (Porxy Thread): 已开始代理，客户端到服务器")
+                threading.Thread(target=forward, args=(target_socket, conn)).start()
+                print("Server Info (Porxy Thread): 已开始代理，服务器到客户端")
+            else:
+                send_message()
     except Exception as e:
         print(f"Error (Main Thread): 处理客户端时出错: {e}，可能是因为：\n1.客户端版本过低（1.7以下）\n2.客户端不是MC客户端或未正确握手\n3.程序出现bug")
         time.sleep(0.3)
@@ -283,6 +288,7 @@ def fakeroom():
         print(f'FakeRoom Info (FakeRoom Thread): 本次运行共发送了{n}个数据包，MOTD: {motd} Port: {PORT}，运行时长：{int(use_time)}秒')
 
 def server():
+    #global conn
     start_time = time.time()
     n = 0
     try:
@@ -313,7 +319,7 @@ def encode_base64(file_path):
 if __name__ == "__main__":
     run_info = []
     #获得配置
-    geted_config = get_config()
+    geted_config = get_config(filename)
     HOST = geted_config[0]
     PORT = geted_config[1]
     porxy_ena = geted_config[2][0]
