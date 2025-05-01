@@ -8,35 +8,50 @@ import base64
 import time
 import threading
 from rcon.source import Client
-import varint
+from frtools import varint
+from frtools import log
 import requests
 import sys
 import ctypes
 
+#参数读取
+def getargs():
+    args = sys.argv
+    filename = args[0]
+    args.pop(0)
+    arg = {"filename":filename}
+    n = 0
+    for i in args:
+        n += 1
+        if i[0] != "-":
+            arg.update({name:i})
+        if i[0] == "-":
+            name = i.replace("-","")
+            if str(n/2)[-1] != 0:
+                arg.update({name:""})
+    return arg
+
 if __name__ == "__main__":
     ctypes.windll.kernel32.SetConsoleTitleW("FakeMCServer")
     try:
-        arg = sys.argv[1].split("=")
-        if arg[0] == "cloud-config":
-            mode = 1
-            url = arg[1]
-            intive = False
+        arg = getargs()
+        if len(arg) == 1:
+            mode = 0
             filename = "server-config.json"
-        elif arg[0] == "intive-mode":
-            mode = 2
             url = "0.0.0.0"
-            intive = eval(arg[1])
-            filename = "server-config.json"
         else:
-            mode = 3
-            intive = False
-            url = "0.0.0.0"
-            filename = arg[0]
-    except:
-        mode = 0
-        filename = "server-config.json"
-        intive = False
-        url = "0.0.0.0"
+            if "arg_config" in arg:
+                mode = 3
+                filename = "server-config.json"
+            if "cloud_config" in arg:
+                mode = 1
+                url = arg["cloud_config"]
+                filename = "server-config.json"
+            if "config_file" in arg:
+                mode = 2
+                filename = arg["config_file"]
+    except Exception as e:
+        print(f'Error (Main Thread): 在读取参数时遇到了问题：{e}')
 
     #设置默认配置备用
     try:
@@ -48,13 +63,51 @@ if __name__ == "__main__":
 
 #获得配置文件里的设置
 def get_config(filename):
-    global intive
     global url
+    global mode
+    global intive
     try:
-        if intive == True:
-                raise Exception("在参数里强制开启了交互模式")
         with open(filename,'r',encoding='utf-8') as f:
-            if mode == 1:
+            if mode == 3:
+                config = {
+                    "use_the_config": True,
+                    "server": {
+                        "ip": arg["ip"],
+                        "port": int(arg["port"]),
+                        "porxy": {
+                            "enable": eval(arg["porxy_enable"]),
+                            "target_ip": arg["porxy_ip"],
+                            "target_port": int(arg["porxy_port"])
+                        }
+                    },
+                    "rcon_command": {
+                        "enable": eval(arg["rcon_enable"]),
+                        "server_ip": arg["rcon_ip"],
+                        "rcon_port": int(arg["rcon_port"]),
+                        "rcon_password": arg["rcon_pwd"]
+                    },
+                    "info": {
+                        "motd": arg["motd"],
+                        "server_list_motd": json.loads(arg["server_list_motd"]),
+                        "max_players": int(arg["max_players"]),
+                        "online_players": int(arg["online_players"]),
+                        "icon": arg["icon"],
+                        "preventsChatReports": eval(arg["preventsChatReports"]),
+                        "sample_players": json.loads(arg["sample_players"])
+                    },
+                    "message": {
+                        "default": json.loads(arg["message"]),
+                        "player_message": json.loads(arg["player_message"]),
+                        "blacklist": arg["blacklist"].split(",")
+                    },
+                    "debug": {
+                        "enable": eval(arg["debug_enable"]),
+                        "enable_room": eval(arg["enable_room"]),
+                        "enable_room_display": eval(arg["enable_room_display"]),
+                        "enable_server": eval(arg["enable_server"])
+                    }
+                }
+            elif mode == 1:
                 config = requests.get(url).json()
             else:
                 config = json.load(f)
@@ -94,8 +147,6 @@ def get_config(filename):
                 enable_room = debug_config["enable_room"]
                 enable_room_display = debug_config["enable_room_display"]
                 enable_server = debug_config["enable_server"]
-                server_name = debug_config["server_info"]["name"]
-                protocol = debug_config["server_info"]["protocol"]
                 return [ip, port,
                         [porxy_ena, porxy_ip, porxy_port],
                         [rcon_ena, server_ip, rcon_port, password],
@@ -103,9 +154,9 @@ def get_config(filename):
                         message, player_message,
                         blacklist,
                         [server_list_motd, max_players, online_players, icon, prevents_chat_reports, sample_players],
-                        debug, [enable_room, enable_room_display, enable_server, server_name, protocol]]
+                        debug, [enable_room, enable_room_display, enable_server]]
     except Exception as e:
-        choose = input(f'Error (Main Thread): 我们在读取配置文件时遇到了一个问题：{e}。\n是否用默认配置覆盖？（可以通过回车来手动输入配置）（Y/N) ')
+        choose = input(f'Error (Main Thread): 我们在读取配置文件时遇到了一个问题：{e}。\n是否用默认配置覆盖？')
         if choose == "Y" or choose == "y":
             print("Info (Main Thread): 即将使用默认配置覆盖")
             time.sleep(1.5)
@@ -119,25 +170,6 @@ def get_config(filename):
             print("Error (Main Thread): 由于配置文件无法读取，即将退出")
             time.sleep(3)
             exit()
-        else:
-            print("Info (Main Thread): 进入手动输入配置模式，仅可使用基础配置（像正常配置输入即可）")
-            ip = input("监听IP地址：")
-            port = int(input("监听端口号："))
-            motd = input("局域网联机的MOTD：")
-            message = {"text":input("消息：")}
-            server_list_motd = input("服务器列表的MOTD：")
-            max_players = int(input("最大玩家："))
-            online_players = int(input("在线玩家："))
-            icon = input("图标：")
-            sample_players = []
-            return [ip, port,
-                    [False, None, None],
-                    [False, None, None, None],
-                    motd,
-                    message, [],
-                    [],
-                    [server_list_motd, max_players, online_players, icon, True, sample_players],
-                    False]
 
 def handle_client(conn):
     try:
@@ -169,19 +201,13 @@ def handle_client(conn):
                     "online": online_players,
                     "sample": sample_players
                 },
-                "description": {
-                    "text": server_list_motd
-                },
+                "description": server_list_motd,
                 "favicon": f"data:image/png;base64,{icon}",
-                "preventsChatReports": prevents_chat_reports
+                "preventsChatReports": prevents_chat_reports,
+                "fake": True
             }
             if icon == None:
                 del status_response["favicon"]
-            if debug == True:
-                if server_name != "default":
-                    status_response["version"]["name"] = server_name
-                if protocol != "auto":
-                    status_response["version"]["protocol"] = protocol
             response_json = json.dumps(status_response)
             response_data = varint.write(0x00) + varint.write(len(response_json)) + response_json.encode()
             response_packet = varint.write(len(response_data)) + response_data
@@ -217,6 +243,7 @@ def handle_client(conn):
                 packet_content = b'\x00' + varint.write(len(disconnect_data)) + disconnect_data
                 packet_length = varint.write(len(packet_content))
                 full_packet = packet_length + packet_content
+                print(full_packet)
                 conn.send(full_packet)
                 time.sleep(0.8)
                 conn.close()
@@ -288,7 +315,6 @@ def fakeroom():
         print(f'FakeRoom Info (FakeRoom Thread): 本次运行共发送了{n}个数据包，MOTD: {motd} Port: {PORT}，运行时长：{int(use_time)}秒')
 
 def server():
-    #global conn
     start_time = time.time()
     n = 0
     try:
@@ -352,8 +378,6 @@ if __name__ == "__main__":
         enable_room = debug_config[0]
         enable_room_display = debug_config[1]
         enable_server = debug_config[2]
-        server_name = debug_config[3]
-        protocol = debug_config[4]
         print("Debug Info (Main Thread): 配置读取完成")
         print("Debug WARN (Main Thread): 注意：开启调试模式可能造成不必要的崩溃，不要经常开启")
     else:

@@ -21,12 +21,6 @@
 **备注**：有概率出现“连接超时“，一般是因为多客户端同时连接或单客户端短时间内多次连接导致的  
 如果你的电脑性能不好，可能会出现“无连接”，“检测中”  
 
-### 参数
-cloud-config=云端配置URL（必须在前面加上http(s)://）  
-intive-mode=是否在启动后进入交互模式（True/False）  
-配置文件路径（如果在当前目录可以直接输入名字）  
-示例：python start.py config2.json（读取当前目录下config2.json的配置）  
-
 ### 配置文件介绍
 *标注“\*”或未写注释（//）的不可更改，也不要在这里复制配置*  
 *标准JSON不支持注释，这里仅作功能介绍，不要被误导*  
@@ -73,13 +67,34 @@ intive-mode=是否在启动后进入交互模式（True/False）
         "enable_room": true, //启用假房
         "enable_room_display": false, //启用假房发送消息的回显
         "enable_server": true, //启用服务器
-        "server_info": { //关于服务端名称，版本*
-            "name": "FakeServer", //服务端名称
-            "protocol": 767 //服务器所使用协议版本，767为1.21
-        }
     }
 }
 ```
+
+### 参数
+**无论如何，请保证你的目录下有配置文件，否则可能会造成错误**  
+\-cloud_config 云端配置URL（必须在前面加上http(s)://）  
+\-config_file 配置文件名  
+\-arg_config（在参数里进行配置，不需要额外值）  
+在使用arg_config后，需要大量参数，以下为命令示例：  
+```bash
+start.exe -arg_config -ip 0.0.0.0 -port 3400 -porxy_enable False -porxy_ip 127.0.0.1 -porxy_port 25565 -rcon_enable False -rcon_ip 127.0.0.1 -rcon_port 25575 -rcon_pwd Pwd114514 -motd 一个使用arg启动的fakeroom -server_list_motd "{\"text\":\" 一个使用arg启动的fakeserver\"}" -max_players 100 -online_players 10 -icon icon.png -preventsChatReports True -sample_players "[{\"name\": \"Player1\",\"id\": \"00000000-0000-0000-0000-000000000000\"}]" -message "{\"text\":\"ARG!!!\"}" -player_message "[{\"name\": \"Player2\",\"message\": {\"text\":\"A Default Message for Player2\"}}]" -blacklist Player3,Player4 -debug_enable False -enable_room True -enable_room_display True -enable_server True
+```
+介绍：
+- ip，port：监听地址和端口
+- porxy_enable，porxy_ip，porxy_port：是否启用代理，代理目标地址，端口  
+**布尔值选项（例如XXX_enable和preventsChatReports）需要使用python格式（True/False）**  
+- rcon_enable，rcon_ip，rcon_port，-rcon_pwd：是否启用Rcon，Rcon服务器地址，端口和密码
+- motd，server_list_motd：局域网世界MOTD和服务器列表MOTD  
+**警告：json格式需要使用双引号括上，且在每个JSON的双引号前面加上反斜杠转义符号**  
+- max_players，online_players：最大玩家数和在线玩家数
+- icon：图标
+- preventsChatReports：聊天举报设置
+- sample_players：在线玩家列表
+- message，player_message：消息，使用MC文本组件和玩家专属消息，同样支持MC文本组件
+- blacklist：黑名单，多个玩家间使用英文逗号分隔
+- debug_enable，enable_room，enable_room_display，enable_server：启用调试，启用FakeRoom，启用FakeRoom发送数据包的输出，启用FakeServer
+
 ---
 ### 链接  
 Java版MC协议介绍：[跳转至英文MCWiki](https://minecraft.wiki/w/Java_Edition_protocol "请自带翻译")  

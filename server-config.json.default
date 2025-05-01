@@ -39,10 +39,6 @@
         "enable": false,
         "enable_room": true,
         "enable_room_display": false,
-        "enable_server": true,
-        "server_info": {
-            "name": "FakeServer",
-            "protocol": 767
-        }
+        "enable_server": true
     }
 }
