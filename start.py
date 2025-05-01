@@ -8,8 +8,7 @@ import base64
 import time
 import threading
 from rcon.source import Client
-from frtools import varint
-from frtools import log
+import varint
 import requests
 import sys
 import ctypes
